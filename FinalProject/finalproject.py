@@ -107,7 +107,6 @@ while True:
     # extract the current temperature from the weather data
     current_temperature = data["current_weather"]["temperature"]
 
-
     # when the temperature detected is above or below the user input, remind the user to open/close the windows in the house
     current_outside_temp_greaterthan_inside = current_temperature > home_temp
     
