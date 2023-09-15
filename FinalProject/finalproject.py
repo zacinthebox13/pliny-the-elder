@@ -31,7 +31,7 @@ def get_geo_data(city, state, api_key):
 api_key = "9ac2a61e4b1b4c78bec8592a4410b21c"
 
 # set the prior check result
-prior_temp_comparison = None
+outside_temp_greaterthan_inside = None
 
 # prompt the user for their location
 user_input = get_location_input()
@@ -72,19 +72,23 @@ response = requests.get(weather_api)
 if response.status_code == 200:
     data = response.json()
     current_temperature = data["current_weather"]["temperature"]
-    prior_temp_comparison = current_temperature > home_temp
+    outside_temp_greaterthan_inside = current_temperature > home_temp
 else:
     print("Error. API not responding. Please try again later.")
     exit()
 
-if prior_temp_comparison:
+# initial check to see if the temperature is above or below the user input
+if outside_temp_greaterthan_inside:
     print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!')
     print(f"I will check again in {frequency} minute(s).")
 else:
     print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!')
     print(f"I will check again in {frequency} minute(s).")
 
+#loop for checking the temperature every x minutes
 while True:
+    
+    # setting the amount of time to sleep between checks
     time.sleep(frequency_seconds)
     
     response = requests.get(weather_api)
@@ -105,13 +109,14 @@ while True:
 
 
     # when the temperature detected is above or below the user input, remind the user to open/close the windows in the house
-    current_temp_comparison = current_temperature > home_temp
+    current_outside_temp_greaterthan_inside = current_temperature > home_temp
     
-    if prior_temp_comparison and not current_temp_comparison:
-        print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!')
-    elif not prior_temp_comparison and current_temp_comparison:
+    if outside_temp_greaterthan_inside and not current_outside_temp_greaterthan_inside:
         print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!')
+    elif not outside_temp_greaterthan_inside and current_outside_temp_greaterthan_inside:
+        print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!')
     else:
         print(f'The temperature threshold change has not been met - no further action is needed. Checking again in {frequency} minute(s).')
 
-    prior_temp_comparison = current_temp_comparison
+    # update the prior check result
+    outside_temp_greaterthan_inside = current_outside_temp_greaterthan_inside
