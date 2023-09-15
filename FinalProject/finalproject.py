@@ -49,7 +49,7 @@ frequency_seconds = frequency * 60
 city, state = user_input.split(", ")
 
 # convert the city and state into longitude and latitude
-geo_data = get_geo_data(city, state)
+geo_data = get_geo_data(city, state, api_key)
 
 # error-checking to ensure a proper location is provided, re-prompt if not
 while not geo_data['results']:
@@ -102,7 +102,6 @@ while True:
 
     # extract the current temperature from the weather data
     current_temperature = data["current_weather"]["temperature"]
-
 
     # when the temperature detected is above or below the user input, remind the user to open/close the windows in the house
     current_temp_comparison = current_temperature > home_temp
