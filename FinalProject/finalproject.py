@@ -49,7 +49,7 @@ frequency_seconds = frequency * 60
 city, state = user_input.split(", ")
 
 # convert the city and state into longitude and latitude
-geo_data = get_geo_data(city, state)
+geo_data = get_geo_data(city, state, api_key)
 
 # error-checking to ensure a proper location is provided, re-prompt if not
 while not geo_data['results']:
