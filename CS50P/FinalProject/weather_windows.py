@@ -7,20 +7,50 @@ from twilio.rest import Client
 
 # define a function that will ask the user for their location
 def get_location_input():
-    return input("What city & state are you located in? Please provide in the format of City, State (2-letter state abbreviation): ")
+    while True:
+        location_input = input("What city & state are you located in? Please provide in the format of City, State (2-letter state abbreviation): ")
+        if ',' not in location_input:
+            print('Invalid location. Please try again and ensure a city and state are provided with a comma separating the two values.')
+            continue
+        parts = location_input.split(", ")
+        if len(parts) != 2:
+            print('Invalid location. Input must contain a city, followed by a comma and a space, and then a state abbreviation. Please try again.')
+            continue
+        city, state = parts
+        if not city or not state:
+            print('Both a city and state must be provided. Please input your location again.')
+            continue
+        if len(state) != 2:
+            print('Invalid state abbreviation. Please input your location again.')
+            continue
+        else:
+            return location_input
 
 # define a function that will ask the user for their desired house temperature
 def get_home_temp():
     while True:
-        home_temp = input("What is your desired house temperature (2-digit integer in Fahrenheit): ")
-        if len(home_temp) == 2 and home_temp.isdigit():
-            return home_temp
+        home_temp_input = input("What is your desired house temperature (positive integer in Fahrenheit): ")
+        if home_temp_input.isdigit():
+            home_temp = int(home_temp_input)
+            if home_temp > 0:
+                return home_temp
+            else: 
+                print('Invalid temperature. Please try again and ensure a positive integer is provided.')
         else:
-            print('Invalid temperature. Please try again and ensure a 2-digit integer is provided.')
+            print('Invalid temperature. Please try again and ensure a positive integer is provided.')
 
 # define a function that will ask the user for the frequency of checking the temperature in minutes
 def get_frequency():
-    return input('Enter how often would you like to check the temperature? (in minutes): ')
+    while True:
+        frequency_input = input('Enter how often would you like to check the temperature? (positive integer in minutes): ')
+        if frequency_input.isdigit():
+            frequency = int(frequency_input)
+            if frequency > 0:
+                return frequency
+            else: 
+                print('Invalid frequency. Please try again and ensure a positive integer is provided.')
+        else: 
+            print('Invalid frequency. Please try again and ensure a positive integer is provided.')
 
 # define a function that will ask the user for their phone number to receive the notifications
 def get_phone_number():
@@ -32,7 +62,7 @@ def get_phone_number():
             print('Invalid phone number. Please try again and ensure a 10-digit phone number is provided.')
 
 # define a function that will get the geo data from the API
-def get_geo_data(city, state, api_key):
+def get_geo_data(city:str, state:str, api_key:str):
     geo_url = f"https://api.geoapify.com/v1/geocode/search?city={city}&state={state}&format=json&apiKey={api_key}"
 
     headers = CaseInsensitiveDict()
@@ -48,6 +78,7 @@ api_key = os.environ.get('GEOAPIFY_KEY')
 # set the variables for the twilio account
 account_sid = os.environ.get('TWILIO_ACT_SID')
 auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+sender_phone_number = '+18556436461'
 client = Client(account_sid, auth_token)
 
 # set the first check value to None
@@ -64,8 +95,7 @@ frequency = int(get_frequency())
 frequency_seconds = frequency * 60
 
 # prompt the user for their phone number to receive the notifications
-phone_number = get_phone_number()
-phone_number = f'+1{phone_number}'
+phone_number = f'+1{get_phone_number()}'
 
 # convert the provided location into city and state
 city, state = user_input.split(", ")
@@ -74,7 +104,7 @@ city, state = user_input.split(", ")
 geo_data = get_geo_data(city, state, api_key)
 
 # error-checking to ensure a proper location is provided, re-prompt if not
-while not geo_data['results']:
+while not geo_data.get('results'):
     print("Location not found. Try again.")
     user_input = get_location_input()
     city, state = user_input.split(", ")
@@ -139,7 +169,7 @@ while True:
     if outside_temp_greaterthan_inside and not current_outside_temp_greaterthan_inside:
         message = client.messages.create(
             to= phone_number,
-            from_="+18556436461",
+            from_=sender_phone_number,
             body=f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!'
         )
         print(f'A threshold change was detected and notification sent as a reminder to open your windows. It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}.')
@@ -149,7 +179,7 @@ while True:
     elif not outside_temp_greaterthan_inside and current_outside_temp_greaterthan_inside:
         message = client.messages.create(
             to=phone_number,
-            from_="+18556436461",
+            from_=sender_phone_number,
             body=f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!'
         )
         print(f'A threshold change was detected and notification sent as a reminder to close your windows. It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}.')
