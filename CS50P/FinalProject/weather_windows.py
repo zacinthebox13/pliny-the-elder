@@ -1,8 +1,9 @@
 
 # import the necessary libraries/modules
 
-import requests, time, json, os
+import requests, time, os, twilio
 from requests.structures import CaseInsensitiveDict
+from twilio.rest import Client
 
 # define a function that will ask the user for their location
 def get_location_input():
@@ -10,11 +11,25 @@ def get_location_input():
 
 # define a function that will ask the user for their desired house temperature
 def get_home_temp():
-    return input("What is your desired house temperature (2-digit integer in Fahrenheit): ")
+    while True:
+        home_temp = input("What is your desired house temperature (2-digit integer in Fahrenheit): ")
+        if len(home_temp) == 2 and home_temp.isdigit():
+            return home_temp
+        else:
+            print('Invalid temperature. Please try again and ensure a 2-digit integer is provided.')
 
 # define a function that will ask the user for the frequency of checking the temperature in minutes
 def get_frequency():
     return input('Enter how often would you like to check the temperature? (in minutes): ')
+
+# define a function that will ask the user for their phone number to receive the notifications
+def get_phone_number():
+    while True:
+        phone_number = input('Enter your phone number to receive notifications (10 digit number): ')
+        if len(phone_number) == 10 and phone_number.isdigit():
+            return phone_number
+        else:
+            print('Invalid phone number. Please try again and ensure a 10-digit phone number is provided.')
 
 # define a function that will get the geo data from the API
 def get_geo_data(city, state, api_key):
@@ -30,20 +45,27 @@ def get_geo_data(city, state, api_key):
 # set the api key for the geo data
 api_key = os.environ.get('GEOAPIFY_KEY')
 
-# set the prior check result
+# set the variables for the twilio account
+account_sid = os.environ.get('TWILIO_ACT_SID')
+auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+client = Client(account_sid, auth_token)
+
+# set the first check value to None
 outside_temp_greaterthan_inside = None
 
 # prompt the user for their location
 user_input = get_location_input()
 
 # prompt the user for their desired house temperature
-home_temp = get_home_temp()
-home_temp = int(home_temp)
+home_temp = int(get_home_temp())
 
 # prompt the user for the frequency of checking the temperature
-frequency = get_frequency()
-frequency = int(frequency)
+frequency = int(get_frequency())
 frequency_seconds = frequency * 60
+
+# prompt the user for their phone number to receive the notifications
+phone_number = get_phone_number()
+phone_number = f'+1{phone_number}'
 
 # convert the provided location into city and state
 city, state = user_input.split(", ")
@@ -56,7 +78,7 @@ while not geo_data['results']:
     print("Location not found. Try again.")
     user_input = get_location_input()
     city, state = user_input.split(", ")
-    geo_data = get_geo_data(city, state)
+    geo_data = get_geo_data(city, state, api_key)
 
 # extract the longitude, latitude, and timezone from the geo data
 lon = geo_data["results"][0]["lon"]
@@ -80,10 +102,14 @@ else:
 # initial check to see if the temperature is above or below the user input
 if outside_temp_greaterthan_inside:
     print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!')
-    print(f"I will check again in {frequency} minute(s).")
+    if frequency == 1:
+        print(f"I will check again in {frequency} minute.")
+    else: print(f"I will check again in {frequency} minutes.")
 else:
     print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!')
-    print(f"I will check again in {frequency} minute(s).")
+    if frequency == 1:
+        print(f"I will check again in {frequency} minute.")
+    else: print(f"I will check again in {frequency} minutes.")
 
 #loop for checking the temperature every x minutes
 while True:
@@ -111,11 +137,29 @@ while True:
     current_outside_temp_greaterthan_inside = current_temperature > home_temp
     
     if outside_temp_greaterthan_inside and not current_outside_temp_greaterthan_inside:
-        print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!')
+        message = client.messages.create(
+            to= phone_number,
+            from_="+18556436461",
+            body=f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!'
+        )
+        print(f'A threshold change was detected and notification sent as a reminder to open your windows. It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}.')
+        if frequency == 1:
+            print(f'Checking again in {frequency} minute.')
+        else: print(f'Checking again in {frequency} minutes.')
     elif not outside_temp_greaterthan_inside and current_outside_temp_greaterthan_inside:
-        print(f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!')
+        message = client.messages.create(
+            to=phone_number,
+            from_="+18556436461",
+            body=f'It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!'
+        )
+        print(f'A threshold change was detected and notification sent as a reminder to close your windows. It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}.')
+        if frequency == 1:
+            print(f'Checking again in {frequency} minute.')
+        else: print(f'Checking again in {frequency} minutes.')
     else:
-        print(f'The temperature threshold change has not been met - no further action is needed. Checking again in {frequency} minute(s).')
+        if frequency == 1:
+            print(f'The temperature threshold change has not been met - no further action is needed. It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Checking again in {frequency} minute.')
+        else: print(f'The temperature threshold change has not been met - no further action is needed. It is currently {current_temperature} degrees Fahrenheit outside in {city}, {state}. Checking again in {frequency} minutes.')
 
     # update the prior check result
     outside_temp_greaterthan_inside = current_outside_temp_greaterthan_inside
