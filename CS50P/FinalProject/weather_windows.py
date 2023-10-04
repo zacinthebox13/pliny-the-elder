@@ -20,8 +20,11 @@ def get_location_input():
         if not city or not state:
             print('Both a city and state must be provided. Please input your location again.')
             continue
-        if len(state) != 2:
+        if len(state) != 2 or not state.isalpha():
             print('Invalid state abbreviation. Please input your location again.')
+            continue
+        if not city.isalpha():
+            print('Invalid city input. Please input your location again.')
             continue
         else:
             return location_input
