@@ -15,7 +15,18 @@ def main():
     # set the variables for the twilio account
     account_sid = os.environ.get('TWILIO_ACT_SID')
     auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-    sender_phone_number = '+18556436461'
+    sender_phone_number = os.environ.get('TWILIO_PHONE')
+    
+    if not account_sid:
+        print("Twilio account information is not set. Please set the environment variable 'TWILIO_ACT_SID'.")
+        exit()
+    elif not auth_token:
+        print("Twilio account information is not set. Please set the environment variable 'TWILIO_AUTH_TOKEN'.")
+        exit()
+    elif not sender_phone_number:
+        print("Twilio account information is not set. Please set the environment variable 'TWILIO_PHONE'.")
+        exit()
+
     client = Client(account_sid, auth_token)
 
     # set the first check value to None
@@ -82,54 +93,59 @@ def main():
         else: print(f"I will check again in {frequency} minutes.")
 
     #loop for checking the temperature every x minutes
-    while True:
-        
-        # setting the amount of time to sleep between checks
-        time.sleep(frequency_seconds)
-        
-        response = requests.get(weather_api)
+    try:
+        while True:
+            
+            # setting the amount of time to sleep between checks
+            time.sleep(frequency_seconds)
+            
+            response = requests.get(weather_api)
 
-        print('Checking again...')
+            print('Checking again...')
 
-        # error-checking to ensure the API is responding + get the current temperature
-        if response.status_code == 200:
-            data = response.json()
-            new_temperature = data["current_weather"]["temperature"]
-        
-        else:
-            print("Error. API not responding. Please try again later.")
-            continue
+            # error-checking to ensure the API is responding + get the current temperature
+            if response.status_code == 200:
+                data = response.json()
+                new_temperature = data["current_weather"]["temperature"]
+            
+            else:
+                print("Error. API not responding. Please try again later.")
+                continue
 
-        # when the temperature detected is above or below the user input, remind the user to open/close the windows in the house
-        current_outside_temp_greaterthan_inside = new_temperature > home_temp
-        
-        if outside_temp_greaterthan_inside and not current_outside_temp_greaterthan_inside:
-            message = client.messages.create(
-                to= phone_number,
-                from_=sender_phone_number,
-                body=f'It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!'
-            )
-            print(f'A threshold change was detected and notification sent as a reminder to open your windows. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}.')
-            if frequency == 1:
-                print(f'Checking again in {frequency} minute.')
-            else: print(f'Checking again in {frequency} minutes.')
-        elif not outside_temp_greaterthan_inside and current_outside_temp_greaterthan_inside:
-            message = client.messages.create(
-                to=phone_number,
-                from_=sender_phone_number,
-                body=f'It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!'
-            )
-            print(f'A threshold change was detected and notification sent as a reminder to close your windows. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}.')
-            if frequency == 1:
-                print(f'Checking again in {frequency} minute.')
-            else: print(f'Checking again in {frequency} minutes.')
-        else:
-            if frequency == 1:
-                print(f'The temperature threshold change has not been met - no further action is needed. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Checking again in {frequency} minute.')
-            else: print(f'The temperature threshold change has not been met - no further action is needed. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Checking again in {frequency} minutes.')
+            # when the temperature detected is above or below the user input, remind the user to open/close the windows in the house
+            current_outside_temp_greaterthan_inside = new_temperature > home_temp
+            
+            if outside_temp_greaterthan_inside and not current_outside_temp_greaterthan_inside:
+                message = client.messages.create(
+                    to= phone_number,
+                    from_=sender_phone_number,
+                    body=f'It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Open your windows to help cool your house down to under {home_temp} degrees!'
+                )
+                print(f'A threshold change was detected and notification sent as a reminder to open your windows. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}.')
+                if frequency == 1:
+                    print(f'Checking again in {frequency} minute.')
+                else: print(f'Checking again in {frequency} minutes.')
+            elif not outside_temp_greaterthan_inside and current_outside_temp_greaterthan_inside:
+                message = client.messages.create(
+                    to=phone_number,
+                    from_=sender_phone_number,
+                    body=f'It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Close your windows to stop your house from going over {home_temp} degrees!'
+                )
+                print(f'A threshold change was detected and notification sent as a reminder to close your windows. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}.')
+                if frequency == 1:
+                    print(f'Checking again in {frequency} minute.')
+                else: print(f'Checking again in {frequency} minutes.')
+            else:
+                if frequency == 1:
+                    print(f'The temperature threshold change has not been met - no further action is needed. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Checking again in {frequency} minute.')
+                else: print(f'The temperature threshold change has not been met - no further action is needed. It is currently {new_temperature} degrees Fahrenheit outside in {city}, {state}. Checking again in {frequency} minutes.')
 
-        # update the prior check result
-        outside_temp_greaterthan_inside = current_outside_temp_greaterthan_inside
+            # update the prior check result
+            outside_temp_greaterthan_inside = current_outside_temp_greaterthan_inside
+    except KeyboardInterrupt:
+        print('\nUser requested to exit. Exiting...')
+
+
 
 # define a function that will ask the user for their location
 def get_location_input():
