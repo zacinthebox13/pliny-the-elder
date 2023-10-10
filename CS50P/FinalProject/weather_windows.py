@@ -151,60 +151,89 @@ def main():
 def get_location_input():
     while True:
         location_input = input("What city & state are you located in? Please provide in the format of City, State (2-letter state abbreviation): ")
-        if ',' not in location_input:
-            print('Invalid location. Please try again and ensure a city and state are provided with a comma separating the two values.')
-            continue
-        parts = location_input.split(", ")
-        if len(parts) != 2:
-            print('Invalid location. Input must contain a city, followed by a comma and a space, and then a state abbreviation. Please try again.')
-            continue
-        city, state = parts
-        if not city or not state:
-            print('Both a city and state must be provided. Please input your location again.')
-            continue
-        if len(state) != 2 or not state.isalpha():
-            print('Invalid state abbreviation. Please input your location again.')
-            continue
-        if not city.isalpha():
-            print('Invalid city input. Please input your location again.')
-            continue
-        else:
+        try:
+            validate_get_location_input(location_input)
             return location_input
+        except ValueError as error_message:
+            print(error_message)
+        
+def validate_get_location_input(location_input):
+    if ',' not in location_input:
+        raise ValueError('Invalid location. Ensure a city and state are provided with a comma separating the two values.')
+    
+    parts = location_input.split(", ")
+
+    if len(parts) != 2:
+        raise ValueError('Invalid location. Input must contain a city, followed by a comma and a space, and then a state abbreviation.')
+    
+    city, state = parts
+
+    if not city or not state:
+        raise ValueError('Both a city and state must be provided.')
+    if len(state) != 2 or not state.isalpha():
+        raise ValueError('Invalid state abbreviation. Please us a 2-letter state abbreviation.')
+    if not city.isalpha():
+        raise ValueError('Invalid city input. Please do not add any special characters to the city name.')
+    
+    return city, state
 
 # define a function that will ask the user for their desired house temperature
 def get_home_temp():
     while True:
-        home_temp_input = input("What is your desired house temperature (positive integer in Fahrenheit): ")
-        if home_temp_input.isdigit():
-            home_temp = int(home_temp_input)
-            if home_temp > 0:
-                return home_temp
-            else: 
-                print('Invalid temperature. Please try again and ensure a positive integer is provided.')
-        else:
-            print('Invalid temperature. Please try again and ensure a positive integer is provided.')
+        try:
+            home_temp_input = input('What is your desired house temperature? (positive integer in Fahrenheit): ')
+            home_temp = validate_get_home_temp(home_temp_input)
+            return home_temp
+        except ValueError as error_message:
+            print(error_message)
+
+def validate_get_home_temp(home_temp_input):
+    if not home_temp_input.isdigit():
+        raise ValueError('Invalid temperature. Please try again and ensure a positive integer is provided.')
+    
+    home_temp = int(home_temp_input)
+
+    if home_temp <= 0:
+        raise ValueError('Invalid temperature. Please try again and ensure a positive integer is provided.')
+    
+    return home_temp
 
 # define a function that will ask the user for the frequency of checking the temperature in minutes
 def get_frequency():
     while True:
-        frequency_input = input('Enter how often would you like to check the temperature? (positive integer in minutes): ')
-        if frequency_input.isdigit():
-            frequency = int(frequency_input)
-            if frequency > 0:
-                return frequency
-            else: 
-                print('Invalid frequency. Please try again and ensure a positive integer is provided.')
-        else: 
-            print('Invalid frequency. Please try again and ensure a positive integer is provided.')
+        try:
+            frequency_input = input('How often would you like to check the temperature? (positive integer in minutes): ')
+            frequency = validate_get_frequency(frequency_input)
+            return frequency
+        except ValueError as error_message:
+            print(error_message)
+
+def validate_get_frequency(frequency_input):
+    if not frequency_input.isdigit():
+        raise ValueError('Invalid frequency. Please try again and ensure a positive integer is provided.')
+    
+    frequency = int(frequency_input)
+
+    if frequency <= 0:
+        raise ValueError('Invalid frequency. Please try again and ensure a positive integer is provided.')
+    
+    return frequency
 
 # define a function that will ask the user for their phone number to receive the notifications
 def get_phone_number():
     while True:
-        phone_number = input('Enter your phone number to receive notifications (10 digit number): ')
-        if len(phone_number) == 10 and phone_number.isdigit():
+        try:
+            phone_number_input = input('What is your phone number? (10-digit phone number): ')
+            phone_number = validate_get_phone_number(phone_number_input)
             return phone_number
-        else:
-            print('Invalid phone number. Please try again and ensure a 10-digit phone number is provided.')
+        except ValueError as error_message:
+            print(error_message)
+
+def validate_get_phone_number(phone_number):
+    if len(phone_number) != 10 or not phone_number.isdigit():
+        raise ValueError('Invalid phone number. Please try again and ensure a 10-digit phone number is provided.')
+    
+    return phone_number
 
 # define a function that will get the geo data from the API since the weather API requires lat/lon but we are collecting city/state from the user
 def get_geo_data(city:str, state:str, api_key:str):
